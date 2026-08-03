@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Defender Scroll Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: #fff;
+        overflow-x: hidden;
+      }
+      video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -2;
+        /* Prevents flicker during rapid seeking */
+        will-change: transform; 
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: -1;
+      }
+      nav {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 18px 40px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 10;
+      }
+      nav a {
+        color: #000000;
+        text-decoration: none;
+        margin-left: 20px;
+      }
+      section {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 30px;
+      }
+      .layer {
+        will-change: transform;
+      }
+      h1 {
+        font-size: 5rem;
+      }
+      h2 {
+        font-size: 3rem;
+      }
+      p {
+        max-width: 700px;
+        line-height: 1.7;
+        margin: 20px auto;
+      }
+      .cards {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .card {
+        width: 240px;
+        padding: 25px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+      }
+      .big {
+        position: absolute;
+        font-size: 16vw;
+        opacity: 0.06;
+        font-weight: bold;
+      }
+      button {
+        padding: 14px 28px;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Added playsinline & muted for cross-platform compliance -->
+    <video id="bg" muted playsinline preload="auto">
+      <source src="1.mp4" type="video/mp4" />
+    </video>
+    <div class="overlay"></div>
+    <nav class="nav-bar">
+      <div class="logo">
+        <img src="landrover-logo.png" alt="Logo" width="80" />
+      </div>
+      <div>
+        <a href="#">Capabilities</a><a href="#">Technology</a><a href="#">Gallery</a>
+      </div>
+    </nav>
+    <section>
+      <div class="big layer" data-speed=".15">DEFENDER</div>
+      <div class="layer" data-speed=".4">
+        <h1>DEFENDER</h1>
+        <p>CAPABLE OF GREAT THINGS. Scroll to drive the cinematic journey.</p>
+        <button>Explore</button>
+      </div>
+    </section>
+    <section>
+      <div class="layer" data-speed=".4">
+        <h2>Engineered For The Impossible</h2>
+        <p>
+          Built to conquer mountains, deserts and cities alike. Every contour is
+          purposeful.
+        </p>
+      </div>
+    </section>
+    <section>
+      <div>
+        <h2>Capabilities</h2>
+        <div class="cards">
+          <div class="card layer" data-speed=".5">
+            <h3>Terrain Response</h3>
+            <p>Adapts to every terrain.</p>
+          </div>
+          <div class="card layer" data-speed=".3">
+            <h3>AWD</h3>
+            <p>Permanent intelligent 4x4.</p>
+          </div>
+          <div class="card layer" data-speed=".6">
+            <h3>Wade Sensing</h3>
+            <p>Up to 900 mm water wading.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section>
+      <div class="layer" data-speed=".4">
+        <h2>296 HP • 400 Nm • 8-Speed Auto</h2>
+        <p>Luxury meets utility with rugged confidence.</p>
+      </div>
+    </section>
+    <section>
+      <div class="layer" data-speed=".4">
+        <h2>ABOVE AND BEYOND</h2>
+        <p>Designed without compromise. Built without limits.</p>
+      </div>
+    </section>
+
+    <script>
+      const video = document.getElementById("bg");
+      const layers = document.querySelectorAll(".layer");
+
+      let targetTime = 0;
+      let currentTime = 0;
+      let maxScroll = 0;
+      let isVideoReady = false;
+
+      function updateDimensions() {
+        if (video.duration) {
+          document.body.style.height = video.duration * 700 + "px";
+          maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        }
+      }
+
+      // Ensure video metadata is fully loaded
+      video.addEventListener("loadedmetadata", () => {
+        video.pause();
+        updateDimensions();
+        isVideoReady = true;
+      });
+
+      window.addEventListener("resize", updateDimensions);
+
+      // Track scroll position asynchronously
+      window.addEventListener("scroll", () => {
+        if (!maxScroll) return;
+        const scrollFraction = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+        
+        if (video.duration) {
+          targetTime = scrollFraction * video.duration;
+        }
+
+        // Parallax updates directly on scroll frame
+        layers.forEach((el) => {
+          const speed = parseFloat(el.dataset.speed || 0);
+          el.style.transform = `translate3d(0, ${window.scrollY * speed * 0.2}px, 0)`;
+        });
+      }, { passive: true });
+
+      // Render Loop (Lerp implementation for buttery-smooth seeking)
+      function render() {
+        if (isVideoReady && Math.abs(targetTime - currentTime) > 0.001) {
+          // Lerp formula: current + (target - current) * smoothFactor
+          currentTime += (targetTime - currentTime) * 0.1;
+          
+          // Only update currentTime if video fast-seeking state is clear
+          if (!video.seeking) {
+            video.currentTime = currentTime;
+          }
+        }
+        requestAnimationFrame(render);
+      }
+
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>
